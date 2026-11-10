@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pop Mart Dashboard</title>
+<meta name="description" content="Interactive dashboard analysing Pop Mart's revenue, IP portfolio, product categories, regions, channels, stores and members, built from HKEX filings.">
+<meta name="author" content="Xiaoyu (Jessy) Mao">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f5f5f6; --surface: #ffffff; --surface-2: #f7f7f8; --line: #ebebee; --grid: #f0f0f2;
+  --ink: #111114; --ink-2: #4a4a52; --ink-3: #85858e;
+  --brand: #e5162b; --brand-2: #b3001b; --brand-soft: #fde8ea; --night: #141416;
+  --accent: var(--brand); --accent-2: var(--brand-2); --hero-a: #ee2a3e; --hero-b: #b3001b;
+  --s1: #e5162b; --s2: #2a78d6; --s3: #eda100; --s4: #1baf7a; --s5: #e87ba4; --s6: #6250d6; --s7: #008300; --s8: #e34948;
+  --t1: #f6a9b1; --t2: #e5162b; --t3: #7d0a17;
+  --prior: #d4d4da; --pos: #e5162b; --neg: #8f8f99; --good: #0b8f0b; --bad: #d0021b;
+  --shadow: 0 1px 2px rgba(17,17,20,.04), 0 4px 14px rgba(17,17,20,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e0e10; --surface: #18181b; --surface-2: #202024; --line: #2a2a2f; --grid: #242428;
+    --ink: #f4f4f6; --ink-2: #c4c4cc; --ink-3: #8b8b95; --brand-soft: #3a1418; --night: #000000;
+    --hero-a: #e5162b; --hero-b: #8f0014;
+    --s1: #ff3347; --s2: #3987e5; --s3: #c98500; --s4: #199e70; --s5: #d55181; --s6: #9085e9; --s7: #2a9d2a; --s8: #e66767;
+    --t1: #7a2a33; --t2: #ff3347; --t3: #ffb3bb;
+    --prior: #3c3c43; --pos: #ff3347; --neg: #7d7d88; --good: #3fbf3f; --bad: #ff5a6a;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e0e10; --surface: #18181b; --surface-2: #202024; --line: #2a2a2f; --grid: #242428;
+  --ink: #f4f4f6; --ink-2: #c4c4cc; --ink-3: #8b8b95; --brand-soft: #3a1418; --night: #000000;
+  --hero-a: #e5162b; --hero-b: #8f0014;
+  --s1: #ff3347; --s2: #3987e5; --s3: #c98500; --s4: #199e70; --s5: #d55181; --s6: #9085e9; --s7: #2a9d2a; --s8: #e66767;
+  --t1: #7a2a33; --t2: #ff3347; --t3: #ffb3bb;
+  --prior: #3c3c43; --pos: #ff3347; --neg: #7d7d88; --good: #3fbf3f; --bad: #ff5a6a;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 4px 28px 40px; }
+body { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; background: var(--night); color: #fff; display: flex; flex-direction: column; padding: 20px 14px; border-top: 4px solid var(--brand); }
+.brand { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 0 6px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.brand h1 { font-size: 15px; margin: 0; line-height: 1.2; color: #fff; }
+.brand p { margin: 0; font-size: 12px; color: #9a9aa4; }
+.side-label { font-size: 10.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #6f6f7a; padding: 20px 10px 8px; }
+nav.tabs { display: flex; flex-direction: column; gap: 4px; }
+nav.tabs button { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: none; background: transparent; color: #c8c8d0; font: inherit; font-size: 13.5px; font-weight: 600; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+nav.tabs button svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+nav.tabs button:hover { background: rgba(255,255,255,.06); color: #fff; }
+nav.tabs button[aria-selected="true"] { background: var(--brand); color: #fff; }
+nav.tabs button[aria-selected="true"] svg { opacity: 1; }
+.side-foot { margin-top: auto; padding: 16px 6px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.side-foot p { font-size: 11.5px; color: #85858e; margin: 10px 0 0; }
+.side .theme-btn { width: 100%; background: rgba(255,255,255,.06); color: #d8d8de; border-color: rgba(255,255,255,.1); }
+.main { min-width: 0; }
+.logo-mark { width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--brand); display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .5px; }
+@media (max-width: 860px) {
+  body { display: block; }
+  .side { position: sticky; top: 0; z-index: 30; height: auto; padding: 10px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .brand { padding: 0; border: none; flex-direction: row; align-items: center; }
+  .brand p, .side-label, .side-foot p { display: none; }
+  .side-foot { margin: 0 0 0 auto; padding: 0; border: none; }
+  .side .theme-btn { width: auto; }
+  nav.tabs { flex-direction: row; overflow-x: auto; width: 100%; order: 3; gap: 4px; scrollbar-width: none; }
+  nav.tabs button { width: auto; white-space: nowrap; padding: 8px 12px; }
+  nav.tabs button svg { display: none; }
+}
+.theme-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+section.tab { display: none; padding-top: 22px; }
+section.tab.active { display: block; }
+.sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -.3px; line-height: 1.2; }
+.eyebrow { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .8px; color: var(--brand); background: var(--brand-soft); padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+.sec-head .zh { font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 4px; }
+.sec-head .lead { max-width: 560px; color: var(--ink-2); font-size: 13.5px; margin: 0; }
+.grid { display: grid; gap: 16px; }
+.g-4 { grid-template-columns: repeat(4, 1fr); }
+.g-3 { grid-template-columns: repeat(3, 1fr); }
+.g-2 { grid-template-columns: repeat(2, 1fr); }
+.g-21 { grid-template-columns: 2fr 1fr; }
+.g-12 { grid-template-columns: 1fr 2fr; }
+.span-2 { grid-column: span 2; }
+@media (max-width: 980px) { .g-4 { grid-template-columns: repeat(2, 1fr); } .g-3, .g-21, .g-12 { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } }
+@media (max-width: 640px) { .g-4, .g-2 { grid-template-columns: 1fr; } .wrap { padding-left: 16px; padding-right: 16px; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); min-width: 0; }
+.card h3 { margin: 0; font-size: 14.5px; line-height: 1.3; position: relative; padding-left: 11px; }
+.card h3::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 3px; border-radius: 2px; background: var(--brand); }
+.kpi h3::before { display: none; }
+.card .sub { color: var(--ink-3); font-size: 12px; margin: 2px 0 10px; }
+.card .note { color: var(--ink-3); font-size: 11.5px; margin-top: 8px; }
+.kpi { position: relative; }
+.kpi .lab { font-size: 11.5px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .5px; }
+.kpi .val { font-size: 30px; font-weight: 750; letter-spacing: -.6px; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.kpi .val small { font-size: 15px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+.kpi .delta { font-size: 12.5px; font-weight: 600; }
+.up { color: var(--good); } .down { color: var(--bad); } .flat { color: var(--ink-3); }
+.kpi .zh { font-size: 11.5px; color: var(--ink-3); }
+.hero { background: linear-gradient(135deg, var(--hero-a), var(--hero-b)); color: #fff; border: none; }
+.hero .lab, .hero .zh { color: rgba(255,255,255,.72); }
+.hero .val small { color: rgba(255,255,255,.8); }
+.hero .delta.up, .hero .delta.down { color: #fff; }
+.hero .delta { display: inline-block; background: rgba(255,255,255,.18); padding: 1px 8px; border-radius: 999px; }
+.insights { background: var(--night); border-color: var(--night); color: #fff; }
+.insights h3 { color: #fff; }
+.insights li::marker { color: var(--brand); font-weight: 800; }
+.insights ol { margin: 6px 0 0; padding-left: 20px; }
+.insights li { margin-bottom: 10px; color: #d8d8de; }
+.insights li b { color: #fff; }
+.insights li .zh { display: block; font-size: 12.5px; color: #9a9aa4; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); margin: 2px 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.chart { width: 100%; position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--ink-2); font-size: 11px; font-family: inherit; }
+.chart .axis text { fill: var(--ink-3); }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .zero { stroke: var(--ink-3); stroke-width: 1; }
+.chart .dl { fill: var(--ink); font-weight: 600; font-size: 10.5px; }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .bm:hover { opacity: .82; }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--bg); font-size: 12px; padding: 8px 10px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.2); opacity: 0; transition: opacity .1s; max-width: 260px; }
+#tip b { display: block; margin-bottom: 3px; }
+#tip .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+#tip .row i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.pill.warn { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
+table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.data th { text-align: right; font-weight: 600; color: var(--ink-3); border-bottom: 1px solid var(--line); padding: 7px 8px; white-space: nowrap; font-size: 11.5px; }
+table.data td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data tr.sub td { color: var(--ink-3); }
+.tbl-wrap { overflow-x: auto; }
+.stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.stat { flex: 1 1 120px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.stat .v { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 11.5px; color: var(--ink-3); }
+.sources li { margin-bottom: 6px; font-size: 12.5px; color: var(--ink-2); }
+.sources a { color: var(--s1); word-break: break-all; }
+footer { color: var(--ink-3); font-size: 11.5px; padding: 24px 0 0; border-top: 1px solid var(--line); margin-top: 28px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* ---------- interaction ---------- */
+.legend button { all: unset; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 6px; margin: -2px -6px; border-radius: 6px; }
+.legend button:hover { background: var(--surface-2); }
+.legend button:focus-visible { outline: 2px solid var(--brand); }
+.legend button.off { opacity: .38; text-decoration: line-through; }
+.legend-hint { font-size: 11px; color: var(--ink-3); margin-left: auto; }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.seg button { border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.seg button.on { background: var(--brand); color: #fff; }
+@keyframes growY { from { transform: scaleY(0); } }
+@keyframes growX { from { transform: scaleX(0); } }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } }
+.chart .bm { transform-box: fill-box; }
+.chart .gy { transform-origin: 50% 100%; animation: growY .6s cubic-bezier(.2,.75,.25,1) both; }
+.chart .gx { transform-origin: 0 50%; animation: growX .6s cubic-bezier(.2,.75,.25,1) both; }
+.chart .gxr { transform-origin: 100% 50%; animation: growX .6s cubic-bezier(.2,.75,.25,1) both; }
+.chart .ln { stroke-dasharray: 1; animation: draw .9s ease-out both; }
+.chart .hit.click { cursor: pointer; }
+section.tab.active { animation: fadeIn .35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .chart .gy, .chart .gx, .chart .gxr, .chart .ln, section.tab.active { animation: none; } }
+[data-goto], [data-ip] { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.card.kpi[data-goto]:hover, .card.kpi[data-ip]:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(17,17,20,.10); }
+.insights li[data-goto] { border-radius: 8px; padding: 4px 6px; margin-left: -6px; }
+.insights li[data-goto]:hover { background: rgba(255,255,255,.07); }
+.insights li[data-goto]::after { content: " →"; color: var(--brand); font-weight: 800; }
+.hint { font-size: 11.5px; color: #9a9aa4; margin: 2px 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.chips button:hover { border-color: var(--brand); color: var(--brand); }
+.chips button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.ip-prof { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; align-items: start; animation: fadeIn .3s ease-out; }
+@media (max-width: 860px) { .ip-prof { grid-template-columns: 1fr; } }
+.ip-name { font-size: 22px; font-weight: 800; letter-spacing: -.3px; margin: 0 0 2px; }
+.ip-rank { display: inline-block; font-size: 11px; font-weight: 800; color: var(--brand); background: var(--brand-soft); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; }
+.ip-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ip-stats .stat .v { font-size: 19px; }
+.ip-text { color: var(--ink-2); font-size: 13px; margin: 12px 0 0; }
+</style>
+</head>
+<body>
+<aside class="side">
+  <div class="brand">
+    <div class="logo-mark" aria-hidden="true">PM</div>
+    <div><h1>Pop Mart Dashboard</h1><p>Business &amp; product analysis · HKEX: 9992</p></div>
+  </div>
+  <div class="side-label">Segments</div>
+  <nav class="tabs" role="tablist" aria-orientation="vertical">
+      <button role="tab" data-tab="overview" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg><span>Overview</span></button>
+      <button role="tab" data-tab="ip" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>IP portfolio</span></button>
+      <button role="tab" data-tab="product" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg><span>Products</span></button>
+      <button role="tab" data-tab="market" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg><span>Regions &amp; channels</span></button>
+      <button role="tab" data-tab="ops" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg><span>Stores &amp; members</span></button>
+      <button role="tab" data-tab="data" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Data &amp; sources</span></button>
+  </nav>
+  <div class="side-foot">
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode">Light / dark mode</button>
+    <p>HKEX: 9992<br>Data to 27 Oct 2026</p>
+  </div>
+</aside>
+<main class="main">
+<div class="wrap">
+
+<!-- ============================== OVERVIEW ============================== -->
+<section class="tab active" id="overview">
+  <div class="sec-head">
+    <div><div class="eyebrow">OVERVIEW</div><h2>Labubu tripled Pop Mart in 2025; growth reversed in Q3 2026</h2></div>
+    <p class="lead">Revenue rose 185% to RMB 37.1bn in 2025 on THE MONSTERS (Labubu) and plush toys. H1 2026 still grew 24%, but Q3 2026 revenue fell 45–50% as the Labubu wave cooled.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card kpi hero" data-goto="market" title="Click to explore"><div class="lab">2025 revenue</div><div class="val">37.12<small>RMB bn</small></div><div class="delta up">▲ 184.7% vs 2024</div></div>
+    <div class="card kpi" data-goto="data" title="Click to explore"><div class="lab">2025 adj. net profit</div><div class="val">13.08<small>RMB bn</small></div><div class="delta up">▲ 284.5% · margin 35.2%</div></div>
+    <div class="card kpi" data-goto="market" title="Click to explore"><div class="lab">H1 2026 revenue</div><div class="val">17.17<small>RMB bn</small></div><div class="delta up">▲ 23.8% vs H1 2025</div></div>
+    <div class="card kpi" data-goto="market" title="Click to explore"><div class="lab">Q3 2026 revenue</div><div class="val">−45~50<small>% YoY</small></div><div class="delta down">▼ first quarterly decline</div></div>
+  </div>
+  <div class="grid g-3" style="margin-top:16px">
+    <div class="card"><h3>Annual revenue</h3><div class="sub">RMB bn, 2021–2025</div><div class="chart" id="c_rev"></div></div>
+    <div class="card"><h3>Adjusted net profit</h3><div class="sub">RMB bn, non-IFRS, 2021–2025</div><div class="chart" id="c_np"></div></div>
+    <div class="card"><h3>Margins</h3><div class="sub">% of revenue</div><div class="legend" id="l_margin"></div><div class="chart" id="c_margin"></div></div>
+  </div>
+  <div class="grid g-21" style="margin-top:16px">
+    <div class="card"><h3>Half-year revenue: the peak was H2 2025</h3><div class="sub">RMB bn</div><div class="chart" id="c_half"></div>
+      <div class="note">H2 2025 = full year 2025 minus H1 2025. Q3 2026 reported only as a growth range (−45% to −50% YoY), so it is not plotted as an amount.</div></div>
+    <div class="card insights"><h3>Key insights</h3>
+      <div class="hint">Click an insight to explore it</div>
+      <ol>
+        <li data-goto="ip" data-ip="THE MONSTERS"><b>One IP drove the boom.</b> THE MONSTERS grew from RMB 0.37bn (2023) to 14.16bn (2025), 38% of revenue.</li>
+        <li data-goto="product"><b>Plush became the core product.</b> Plush rose from 3% of revenue (2023) to 57% (H1 2026).</li>
+        <li data-goto="market"><b>Overseas peaked first.</b> Americas grew 748% in 2025, then fell 17% in H1 2026 and 70–75% in Q3 2026.</li>
+        <li data-goto="ip" data-ip="Twinkle Twinkle"><b>Twinkle Twinkle is the next engine.</b> RMB 2.65bn in H1 2026 (+581%), now the #2 IP.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== IP ============================== -->
+<section class="tab" id="ip">
+  <div class="sec-head">
+    <div><div class="eyebrow">IP PORTFOLIO</div><h2>THE MONSTERS peaked at 38% of revenue; Twinkle Twinkle is rising</h2></div>
+    <p class="lead">Seven IPs passed RMB 1bn in 2025 (four in 2024). In H1 2026 THE MONSTERS fell 7.5% and MOLLY 33.6%, while Twinkle Twinkle, DIMOO and CRYBABY grew 34–581%.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card kpi" data-goto="ip" data-ip="THE MONSTERS" title="Click to explore"><div class="lab">THE MONSTERS, 2025</div><div class="val">14.16<small>RMB bn</small></div><div class="delta up">▲ 365.7% · 38.1% of revenue</div></div>
+    <div class="card kpi" data-goto="ip" data-ip="THE MONSTERS" title="Click to explore"><div class="lab">THE MONSTERS, H1 2026</div><div class="val">4.45<small>RMB bn</small></div><div class="delta down">▼ 7.5% · share 26.0%</div></div>
+    <div class="card kpi" data-goto="ip" data-ip="Twinkle Twinkle" title="Click to explore"><div class="lab">Twinkle Twinkle, H1 2026</div><div class="val">2.65<small>RMB bn</small></div><div class="delta up">▲ 580.6% · 15.4% share</div></div>
+    <div class="card kpi"><div class="lab">IPs above RMB 1bn</div><div class="val">7<small>in 2025</small></div><div class="delta up">▲ from 4 in 2024, 2 in 2023</div></div>
+  </div>
+  <div class="card" style="margin-top:16px" id="ipExplorer">
+    <div class="card-top"><div><h3>IP explorer</h3><div class="sub">Pick an IP, or click any bar in the IP charts below</div></div></div>
+    <div class="chips" id="ipChips"></div>
+    <div class="ip-prof" id="ipProf"></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><h3>Revenue by IP, 2024 vs 2025</h3><div class="sub">RMB bn · sorted by 2025</div><div class="legend" id="l_ipyear"></div><div class="chart" id="c_ipyear"></div></div>
+    <div class="card"><h3>H1 2026 growth by IP</h3><div class="sub">% change vs H1 2025</div><div class="chart" id="c_ipyoy"></div>
+      <div class="note">Twinkle Twinkle (+580.6%) is clipped at the right edge so the other bars stay readable.</div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><h3>Concentration: THE MONSTERS share of revenue</h3><div class="sub">% of group revenue</div><div class="chart" id="c_conc"></div></div>
+    <div class="card"><h3>IP mix, H1 2025 vs H1 2026</h3><div class="sub">% of revenue</div><div class="legend" id="l_ipmix"></div><div class="chart" id="c_ipmix"></div></div>
+  </div>
+</section>
+
+<!-- ============================== PRODUCT ============================== -->
+<section class="tab" id="product">
+  <div class="sec-head">
+    <div><div class="eyebrow">PRODUCTS</div><h2>Plush overtook blind-box figures and is now 57% of sales</h2></div>
+    <p class="lead">Plush revenue grew from RMB 0.20bn (2023) to 18.71bn (2025). Figures still grew 73% in 2025 but were flat in H1 2026; MEGA collectibles grew only 14% in 2025.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card kpi"><div class="lab">Plush, 2025</div><div class="val">18.71<small>RMB bn</small></div><div class="delta up">▲ 560.6% · 50.4% share</div></div>
+    <div class="card kpi"><div class="lab">Figures, 2025</div><div class="val">12.02<small>RMB bn</small></div><div class="delta up">▲ 73.3% · 32.4% share</div></div>
+    <div class="card kpi"><div class="lab">MEGA, 2025</div><div class="val">1.92<small>RMB bn</small></div><div class="delta up">▲ 13.8% · 5.2% share</div></div>
+    <div class="card kpi"><div class="lab">Gross margin, 2025</div><div class="val">72.1<small>%</small></div><div class="delta up">▲ 5.3 pts vs 2024</div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><div class="card-top"><div><h3>Revenue by category</h3><div class="sub">RMB bn, 2023–2025</div></div><div class="seg" data-chart="c_cat"><button type="button" class="on" data-mode="amt">RMB bn</button><button type="button" data-mode="pct">% share</button></div></div><div class="legend" id="l_cat"></div><div class="chart" id="c_cat"></div></div>
+    <div class="card"><h3>Category mix</h3><div class="sub">% of revenue</div><div class="legend" id="l_catmix"></div><div class="chart" id="c_catmix"></div>
+      <div class="note">H1 reports show three categories; MEGA is not broken out separately for H1 2026, so H1 figures are compared on three groups below.</div></div>
+  </div>
+  <div class="grid g-12" style="margin-top:16px">
+    <div class="card"><h3>H1 2026 vs H1 2025</h3><div class="sub">RMB bn</div><div class="legend" id="l_cath1"></div><div class="chart" id="c_cath1"></div></div>
+    <div class="card insights"><h3>What the product shift means</h3>
+      <ol>
+        <li><b>Plush carried the growth.</b> Plush accounted for 66% of the 2025 revenue increase (RMB 15.9bn of 24.1bn).</li>
+        <li><b>Margins rose with the mix.</b> Gross margin climbed from 57.5% (2022) to 72.1% (2025), before easing to 69.7% in H1 2026.</li>
+        <li><b>Figures stalled in 2026.</b> Figure revenue grew 0.3% in H1 2026 while plush grew 60%, so the business leans further on one format.</li>
+        <li><b>Other merchandise fell.</b> Other IP products dropped 15.8% in H1 2026.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== MARKET ============================== -->
+<section class="tab" id="market">
+  <div class="sec-head">
+    <div><div class="eyebrow">REGIONS & CHANNELS</div><h2>Overseas reached 44% of revenue in 2025, then fell fastest in 2026</h2></div>
+    <p class="lead">In 2025 the Americas grew 748% and Europe 506%. In H1 2026 Asia Pacific fell 9.7% and the Americas 16.5%; in Q3 2026 every region declined, the Americas most (−70% to −75%).</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card kpi"><div class="lab">Overseas share, 2025</div><div class="val">43.8<small>%</small></div><div class="delta up">▲ from 31.8% in 2024</div></div>
+    <div class="card kpi"><div class="lab">Americas, 2025</div><div class="val">6.81<small>RMB bn</small></div><div class="delta up">▲ 748.4% vs 2024</div></div>
+    <div class="card kpi"><div class="lab">China (PRC), H1 2026</div><div class="val">12.20<small>RMB bn</small></div><div class="delta up">▲ 47.3% · 71% share</div></div>
+    <div class="card kpi"><div class="lab">Online share of China, 2025</div><div class="val">40.9<small>%</small></div><div class="delta up">▲ from 31.2% in 2024</div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><div class="card-top"><div><h3>Revenue by region</h3><div class="sub">RMB bn</div></div><div class="seg" data-chart="c_reg"><button type="button" class="on" data-mode="amt">RMB bn</button><button type="button" data-mode="pct">% share</button></div></div><div class="legend" id="l_reg"></div><div class="chart" id="c_reg"></div></div>
+    <div class="card"><h3>Growth by region: 2025, H1 2026 and Q3 2026</h3><div class="sub">% YoY · Q3 2026 shown as the midpoint of the reported range</div><div class="legend" id="l_regyoy"></div><div class="chart" id="c_regyoy"></div>
+      <div class="note">Americas 2025 (+748%) and Europe 2025 (+506%) are clipped; values are in the tooltip and Data tab.</div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><h3>China revenue by channel</h3><div class="sub">% of PRC revenue</div><div class="legend" id="l_ch"></div><div class="chart" id="c_ch"></div></div>
+    <div class="card"><h3>Q3 2026 business update</h3><div class="sub">Revenue change vs Q3 2025, reported ranges</div><div class="chart" id="c_q3"></div>
+      <div class="note">Announced 27 Oct 2026 (unaudited). Q3 2025 had grown 245–250%, so the base is very high. China offline fell only 5–10%; online fell 45–50%.</div></div>
+  </div>
+</section>
+
+<!-- ============================== OPS ============================== -->
+<section class="tab" id="ops">
+  <div class="sec-head">
+    <div><div class="eyebrow">STORES & MEMBERS</div><h2>Store growth moved overseas; 82 million members in mainland China</h2></div>
+    <p class="lead">Retail stores rose from 357 (2022) to 676 (June 2026). Overseas stores grew from 90 (2024) to 221 (June 2026); mainland China adds only a few each year. Members buy 93% of mainland sales.</p>
+  </div>
+  <div class="grid g-4">
+    <div class="card kpi"><div class="lab">Retail stores, Jun 2026</div><div class="val">676</div><div class="delta up">▲ 46 vs Dec 2025</div></div>
+    <div class="card kpi"><div class="lab">Roboshops, Jun 2026</div><div class="val">2,827</div><div class="delta up">▲ 190 vs Dec 2025</div></div>
+    <div class="card kpi"><div class="lab">Mainland members, Jun 2026</div><div class="val">82.4<small>m</small></div><div class="delta up">▲ from 72.6m at Dec 2025</div></div>
+    <div class="card kpi"><div class="lab">Member repurchase rate</div><div class="val">51.6<small>%</small></div><div class="delta down">▼ from 55.7% in 2025</div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><h3>Retail stores by region</h3><div class="sub">Year end; June for 2026</div><div class="legend" id="l_st"></div><div class="chart" id="c_st"></div>
+      <div class="note">Regional split is disclosed from 2024. 2022–2023 totals: 357 and 433.</div></div>
+    <div class="card"><h3>Registered members, mainland China</h3><div class="sub">Millions</div><div class="chart" id="c_mem"></div></div>
+  </div>
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card"><h3>Roboshops, mainland China</h3><div class="sub">Units</div><div class="chart" id="c_robo"></div></div>
+    <div class="card"><h3>China retail store revenue per store</h3><div class="sub">RMB m per store (retail-store revenue ÷ PRC store count at period end)</div><div class="chart" id="c_rps"></div>
+      <div class="note">An approximation: uses period-end store counts, so stores opened during the year are counted as full-year stores. H1 2026 is a half-year figure.</div></div>
+  </div>
+</section>
+
+<!-- ============================== DATA ============================== -->
+<section class="tab" id="data">
+  <div class="sec-head">
+    <div><div class="eyebrow">DATA</div><h2>Data tables and sources</h2></div>
+    <p class="lead">All figures come from Pop Mart's HKEX filings (annual and interim results announcements) and its Q3 2026 business update. Amounts in RMB million unless stated.</p>
+  </div>
+  <div class="grid g-2">
+    <div class="card"><h3>Group financials</h3><div class="sub">RMB m</div><div class="tbl-wrap" id="t_fin"></div></div>
+    <div class="card"><h3>Revenue by region</h3><div class="sub">RMB m</div><div class="tbl-wrap" id="t_reg"></div></div>
+    <div class="card span-2"><h3>Revenue by IP</h3><div class="sub">RMB m</div><div class="tbl-wrap" id="t_ip"></div></div>
+    <div class="card"><h3>Revenue by category</h3><div class="sub">RMB m</div><div class="tbl-wrap" id="t_cat"></div></div>
+    <div class="card"><h3>China revenue by channel</h3><div class="sub">RMB m</div><div class="tbl-wrap" id="t_ch"></div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Sources</h3>
+    <ol class="sources">
+      <li>Pop Mart 2025 annual results announcement (25 Mar 2026): <a href="https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0325/2026032500285.pdf">hkexnews.hk/…/2026032500285.pdf</a></li>
+      <li>Pop Mart 2026 interim results announcement (20 Aug 2026): <a href="https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0820/2026082000353.pdf">hkexnews.hk/…/2026082000353.pdf</a></li>
+      <li>Pop Mart 2024 annual results announcement (26 Mar 2025): <a href="https://www1.hkexnews.hk/listedco/listconews/sehk/2025/0326/2025032600227.pdf">hkexnews.hk/…/2025032600227.pdf</a></li>
+      <li>Pop Mart 2023 annual results announcement (20 Mar 2024): <a href="https://www1.hkexnews.hk/listedco/listconews/sehk/2024/0320/2024032000317.pdf">hkexnews.hk/…/2024032000317.pdf</a></li>
+      <li>Pop Mart 2022 annual results announcement (29 Mar 2023): <a href="https://www1.hkexnews.hk/listedco/listconews/sehk/2023/0329/2023032900311.pdf">hkexnews.hk/…/2023032900311.pdf</a></li>
+      <li>Q3 2026 business update (27 Oct 2026), as reported by Yicai and 36Kr: <a href="https://www.yicai.com/news/103411691.html">yicai.com/news/103411691.html</a> · <a href="https://eu.36kr.com/en/p/4044091894109830">eu.36kr.com/en/p/4044091894109830</a></li>
+      <li>Q3 2025 business update (Oct 2025), as reported by Jiemian: <a href="https://m.jiemian.com/article/13493456.html">jiemian.com/article/13493456.html</a></li>
+    </ol>
+    <p class="note">Definitions: "China / PRC" includes Hong Kong, Macao and Taiwan, as in Pop Mart's 2025–2026 reporting. "Overseas" = Asia Pacific + Americas + Europe and others. Adjusted net profit is Pop Mart's non-IFRS measure. Independent analysis of public data; not affiliated with Pop Mart.</p>
+  </div>
+</section>
+
+<footer>
+  <span>Pop Mart Business &amp; Product Dashboard · Built by Xiaoyu (Jessy) Mao · Data from HKEX filings to 27 Oct 2026</span>
+  <span>Independent analysis, not affiliated with Pop Mart International Group</span>
+</footer>
+</div>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+/* =========================== DATA (RMB m) =========================== */
+const D = {
+  years: ["2021","2022","2023","2024","2025"],
+  revenue: [4490.7, 4617.3, 6301.0, 13037.7, 37120.1],
+  adjNP:   [1001.6,  573.5, 1190.5,  3403.2, 13083.6],
+  gm:      [61.4, 57.5, 61.3, 66.8, 72.1],
+  half: { labels: ["H1 2025","H2 2025","H1 2026"], values: [13876.3, 37120.1-13876.3, 17172.9] },
+  h1: { gm: [70.3, 69.7], npm: [33.9, 30.0] },
+  ipNames: ["THE MONSTERS","SKULLPANDA","CRYBABY","MOLLY","DIMOO","Twinkle Twinkle","HIRONO","HACIPUPU","Other artist IPs","Licensed IPs","External & others"],
+  ip2024: [3040.7,1308.3,1164.9,2093.2,909.6,120.8,726.5,224.3,1532.7,1600.7,316.2],
+  ip2025: [14161.1,3539.5,2929.0,2897.1,2776.7,2055.6,1735.2,848.0,2464.0,3382.0,331.8],
+  ipH1: { names: ["THE MONSTERS","Twinkle Twinkle","Licensed IPs","CRYBABY","DIMOO","SKULLPANDA","HIRONO","MOLLY","Zsiga","Other artist IPs","External & others"],
+          h125: [4814.0,389.4,1524.8,1218.2,1105.1,1220.5,728.4,1357.2,211.3,1184.5,122.9],
+          h126: [4454.4,2650.0,1771.2,1632.6,1619.2,1551.2,1008.9,900.6,298.3,1174.3,112.3] },
+  monstersShare: { labels: ["2023","2024","H1 2025","2025","H1 2026"], values: [5.8, 23.3, 34.7, 38.1, 26.0] },
+  cat: { names: ["Plush","Figures","MEGA","Other IP products"],
+         y2023: [203.9, 4793.9, 684.3, 619.0], y2024: [2832.1, 6936.1, 1683.8, 1585.8], y2025: [18708.1, 12022.6, 1916.1, 4473.3] },
+  catH1: { names: ["Plush","Figures","Other incl. MEGA"], h125: [6139.2, 5175.9, 2561.2], h126: [9824.9, 5192.5, 2155.5] },
+  reg: { names: ["China (PRC)","Asia Pacific","Americas","Europe & others"],
+         labels: ["2024","2025","H1 2025","H1 2026"],
+         data: [[8886.5,3109.7,802.2,239.3],[20851.7,8011.0,6806.2,1451.1],[8282.8,2850.9,2264.9,477.7],[12200.5,2575.0,1891.6,505.7]] },
+  regYoY: { names: ["China (PRC)","Asia Pacific","Americas","Europe & others"],
+            y2025: [134.6,157.6,748.4,506.3], h126: [47.3,-9.7,-16.5,5.9], q3: [-27.5,-67.5,-72.5,-52.5] },
+  ch: { names: ["Retail stores","Roboshops","Pop Draw (mini-program)","Tmall","Douyin","Other online","Wholesale & others"],
+        labels: ["2024","2025","H1 2025","H1 2026"],
+        data: [[4600.8,750.8,1113.7,627.8,601.2,429.2,762.9],[10075.4,1345.9,3423.5,1785.3,1589.8,1723.7,908.0],
+               [4405.9,678.3,1125.2,657.5,561.1,593.4,261.3],[6089.7,779.0,2062.9,901.3,976.4,838.2,553.1]] },
+  q3: { labels: ["Total","China (PRC)","· China offline","· China online","Asia Pacific","Americas","Europe & others"],
+        lo: [-50,-30,-10,-50,-70,-75,-55], hi: [-45,-25,-5,-45,-65,-70,-50] },
+  stores: { names: ["China (PRC)","Asia Pacific","Americas","Europe & others"], labels: ["2024","2025","Jun 2026"],
+            data: [[431,54,22,14],[445,85,64,36],[455,90,86,45]] },
+  members: { labels: ["2022","2023","2024","2025","Jun 2026"], values: [26.0,34.4,46.08,72.58,82.44] },
+  robo: { labels: ["2022","2023","2024","2025","Jun 2026"], values: [2067,2190,2300,2350,2436] },
+  rps: { labels: ["2024","2025","H1 2026"], values: [4600.8/431, 10075.4/445, 6089.7/455] }
+};
+
+/* =========================== HELPERS =========================== */
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const S = i => `var(--s${i})`;
+const fmt = (v, d=1) => v.toLocaleString("en-US", {minimumFractionDigits:d, maximumFractionDigits:d});
+const bn = v => fmt(v/1000, 2);
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs={}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function txt(parent, x, y, s, attrs={}) { const t = el("text", {x, y, ...attrs}, parent); t.textContent = s; return t; }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10; return m * p; }
+function ticks(max, n=4) { const step = niceMax(max / n); const out = []; for (let v = 0; v <= max + 1e-9; v += step) out.push(+v.toFixed(6)); return out; }
+const tip = document.getElementById("tip");
+function showTip(e, title, rows) {
+  tip.innerHTML = `<b>${title}</b>` + rows.map(r => `<div class="row"><span>${r.c ? `<i style="background:${r.c}"></i>` : ""}${r.k}</span><span>${r.v}</span></div>`).join("");
+  tip.style.opacity = 1; moveTip(e);
+}
+function moveTip(e) { const x = e.clientX + 14, y = e.clientY + 14; const w = tip.offsetWidth, h = tip.offsetHeight; tip.style.left = Math.min(x, innerWidth - w - 8) + "px"; tip.style.top = Math.min(y, innerHeight - h - 8) + "px"; }
+function hideTip() { tip.style.opacity = 0; }
+function bindTip(node, title, rows) { node.addEventListener("mousemove", e => showTip(e, title, rows)); node.addEventListener("mouseleave", hideTip); }
+const REG = {}, HID = {}, MODE = {};
+function draw(id, fn, opts) {
+  REG[id] = { fn, opts };
+  let o = { ...opts };
+  if (MODE[id] === "pct") o = { ...o, stacked: true, pct: true, labelTop: false };
+  const h = HID[id];
+  if (h && h.size && o.series) { const keep = o.series.filter(se => !h.has(se.name)); if (keep.length) o.series = keep; }
+  fn(id, o);
+}
+function redraw(id) { const r = REG[id]; if (r) draw(id, r.fn, r.opts); }
+function legend(id, items) {
+  const box = document.getElementById(id), cid = id.replace(/^l_/, "c_");
+  box.innerHTML = items.map(([n, c]) => `<button type="button" data-s="${n}" class="${HID[cid] && HID[cid].has(n) ? "off" : ""}" aria-pressed="${!(HID[cid] && HID[cid].has(n))}"><i style="background:${c}"></i>${n}</button>`).join("")
+    + (items.length > 1 ? `<span class="legend-hint">Click to show / hide</span>` : "");
+  box.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const set = HID[cid] || (HID[cid] = new Set()); const n = b.dataset.s;
+    if (set.has(n)) set.delete(n); else if (set.size < items.length - 1) set.add(n);
+    b.classList.toggle("off", set.has(n)); b.setAttribute("aria-pressed", !set.has(n)); redraw(cid);
+  }));
+}
+function roundTopPath(x, y, w, h, r=4) { if (h <= 0) return ""; r = Math.min(r, w/2, h); return `M${x},${y+h} L${x},${y+r} Q${x},${y} ${x+r},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h} Z`; }
+function roundRightPath(x, y, w, h, r=4) { if (w <= 0) return ""; r = Math.min(r, h/2, w); return `M${x},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h-r} Q${x+w},${y+h} ${x+w-r},${y+h} L${x},${y+h} Z`; }
+
+/* Vertical bar chart: grouped or stacked, optional 100% */
+function vbar(id, { labels, series, stacked=false, pct=false, H=260, fmtV=v=>fmt(v,1), unit="", labelTop=false, hiLast=false, onClick=null }) {
+  const box = document.getElementById(id); box.innerHTML = "";
+  const W = Math.max(300, box.clientWidth || 600), m = { t: 18, r: 8, b: 30, l: 42 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, box);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const totals = labels.map((_, i) => series.reduce((s, se) => s + se.values[i], 0));
+  let max = pct ? 100 : stacked ? Math.max(...totals) : Math.max(...series.flatMap(s => s.values));
+  if (!pct) max = niceMax(max * 1.08);
+  const y = v => m.t + ih - (v / max) * ih;
+  const tk = pct ? [0,25,50,75,100] : ticks(max);
+  const g = el("g", { class: "axis" }, svg);
+  tk.forEach(t => { el("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: "gridline" }, g); txt(g, m.l - 6, y(t) + 4, pct ? t + "%" : fmtV(t).replace(/\.0+$/, ""), { "text-anchor": "end" }); });
+  const band = iw / labels.length, gw = band * (stacked ? 0.56 : 0.74), gap = 2;
+  labels.forEach((lab, i) => {
+    const cx = m.l + band * i + band / 2;
+    txt(g, cx, H - 10, lab, { "text-anchor": "middle" });
+    if (stacked) {
+      let acc = 0; const tot = totals[i];
+      series.forEach((se, k) => {
+        const raw = se.values[i]; const v = pct ? raw / tot * 100 : raw;
+        const y0 = y(acc), y1 = y(acc + v); const h = Math.max(0, y0 - y1 - (k < series.length - 1 ? gap : 0));
+        const top = k === series.length - 1;
+        const p = top ? el("path", { d: roundTopPath(cx - gw/2, y1, gw, y0 - y1), fill: se.color, class: "bm gy" }, svg)
+                      : el("rect", { x: cx - gw/2, y: y1, width: gw, height: Math.max(0, y0 - y1 - gap), fill: se.color, class: "bm gy" }, svg);
+        p.style.animationDelay = (i * 70) + "ms";
+        acc += v;
+      });
+      if (!pct && labelTop) txt(svg, cx, y(tot) - 6, fmtV(tot), { "text-anchor": "middle", class: "dl" });
+      const hit = el("rect", { x: m.l + band * i, y: m.t, width: band, height: ih, class: "hit" + (onClick ? " click" : "") }, svg);
+      if (onClick) hit.addEventListener("click", () => onClick(lab));
+      bindTip(hit, lab, series.map(se => ({ k: se.name, c: se.color, v: pct ? fmt(se.values[i] / tot * 100) + "%" : fmtV(se.values[i]) + unit })).reverse().concat(pct ? [] : [{ k: "Total", v: fmtV(tot) + unit }]));
+    } else {
+      const bw = (gw - gap * (series.length - 1)) / series.length;
+      series.forEach((se, k) => {
+        const v = se.values[i]; const x0 = cx - gw/2 + k * (bw + gap);
+        const fc = hiLast && series.length === 1 && i < labels.length - 1 ? "var(--t1)" : se.color;
+        const p = el("path", { d: roundTopPath(x0, y(v), bw, y(0) - y(v)), fill: fc, class: "bm gy" }, svg); p.style.animationDelay = (i * 70) + "ms";
+        if (labelTop) txt(svg, x0 + bw/2, y(v) - 6, fmtV(v), { "text-anchor": "middle", class: "dl" });
+      });
+      const hit = el("rect", { x: m.l + band * i, y: m.t, width: band, height: ih, class: "hit" + (onClick ? " click" : "") }, svg);
+      if (onClick) hit.addEventListener("click", () => onClick(lab));
+      bindTip(hit, lab, series.map(se => ({ k: se.name, c: se.color, v: fmtV(se.values[i]) + unit })));
+    }
+  });
+  el("line", { x1: m.l, x2: W - m.r, y1: y(0), y2: y(0), class: "zero" }, svg);
+}
+
+/* Horizontal grouped bars */
+function hbar(id, { labels, series, fmtV=v=>fmt(v,2), unit="", rowH=26, labelW=128, onClick=null, sel=null }) {
+  const box = document.getElementById(id); box.innerHTML = "";
+  const W = Math.max(300, box.clientWidth || 600), m = { t: 8, r: 54, b: 8, l: labelW };
+  const H = m.t + m.b + labels.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, box);
+  const iw = W - m.l - m.r; const max = niceMax(Math.max(...series.flatMap(s => s.values)) * 1.02);
+  const x = v => m.l + v / max * iw;
+  const g = el("g", { class: "axis" }, svg);
+  ticks(max).forEach(t => el("line", { x1: x(t), x2: x(t), y1: m.t, y2: H - m.b, class: "gridline" }, g));
+  const gap = 2, inner = rowH * 0.72, bh = (inner - gap * (series.length - 1)) / series.length;
+  labels.forEach((lab, i) => {
+    const y0 = m.t + i * rowH + (rowH - inner) / 2;
+    if (sel === lab) el("rect", { x: 2, y: m.t + i * rowH, width: W - 4, height: rowH, rx: 6, fill: "var(--brand-soft)" }, svg);
+    txt(svg, m.l - 8, y0 + inner / 2 + 4, lab, { "text-anchor": "end", style: sel === lab ? "font-weight:800;fill:var(--ink)" : "" });
+    series.forEach((se, k) => {
+      const v = se.values[i], yy = y0 + k * (bh + gap);
+      const p = el("path", { d: roundRightPath(x(0), yy, x(v) - x(0), bh), fill: se.color, class: "bm gx" }, svg); p.style.animationDelay = (i * 40) + "ms";
+      if (k === series.length - 1) txt(svg, x(v) + 6, yy + bh / 2 + 4, fmtV(v), { class: "dl" });
+    });
+    const hit = el("rect", { x: 0, y: m.t + i * rowH, width: W, height: rowH, class: "hit" + (onClick ? " click" : "") }, svg);
+    if (onClick) hit.addEventListener("click", () => onClick(lab));
+    bindTip(hit, lab, series.map(se => ({ k: se.name, c: se.color, v: fmtV(se.values[i]) + unit })).concat(onClick ? [{ k: "Click for profile", v: "→" }] : []));
+  });
+  el("line", { x1: x(0), x2: x(0), y1: m.t, y2: H - m.b, class: "zero" }, svg);
+}
+
+/* Diverging horizontal bars (single or grouped), with clipping */
+function divbar(id, { labels, series, clip=[-100,150], rowH=28, labelW=128, pctLabel=true, onClick=null, sel=null }) {
+  const box = document.getElementById(id); box.innerHTML = "";
+  const W = Math.max(300, box.clientWidth || 600), m = { t: 8, r: 58, b: 22, l: labelW + 50 };
+  const H = m.t + m.b + labels.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, box);
+  const [lo, hi] = clip; const iw = W - m.l - m.r; const x = v => m.l + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * iw;
+  const g = el("g", { class: "axis" }, svg);
+  const step = (hi - lo) <= 120 ? 20 : 50;
+  for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) { el("line", { x1: x(t), x2: x(t), y1: m.t, y2: H - m.b, class: "gridline" }, g); txt(g, x(t), H - 6, (t > 0 ? "+" : "") + t + "%", { "text-anchor": "middle" }); }
+  const gap = 2, inner = rowH * 0.7, bh = (inner - gap * (series.length - 1)) / series.length;
+  labels.forEach((lab, i) => {
+    const y0 = m.t + i * rowH + (rowH - inner) / 2;
+    if (sel === lab) el("rect", { x: 2, y: m.t + i * rowH, width: W - 4, height: rowH, rx: 6, fill: "var(--brand-soft)" }, svg);
+    txt(svg, labelW, y0 + inner / 2 + 4, lab, { "text-anchor": "end", style: sel === lab ? "font-weight:800;fill:var(--ink)" : "" });
+    series.forEach((se, k) => {
+      const v = se.values[i]; if (v == null) return; const yy = y0 + k * (bh + gap);
+      const x0 = x(0), x1 = x(v); const neg = v < 0;
+      const col = se.color || (neg ? "var(--neg)" : "var(--pos)");
+      const w = Math.abs(x1 - x0);
+      const d = neg ? `M${x0},${yy} L${x1 + Math.min(4,w)},${yy} Q${x1},${yy} ${x1},${yy + Math.min(4,bh/2)} L${x1},${yy + bh - Math.min(4,bh/2)} Q${x1},${yy + bh} ${x1 + Math.min(4,w)},${yy + bh} L${x0},${yy + bh} Z`
+                    : roundRightPath(x0, yy, w, bh);
+      const p = el("path", { d, fill: col, class: "bm " + (neg ? "gxr" : "gx") }, svg); p.style.animationDelay = (i * 40) + "ms";
+      const clipped = v > hi || v < lo;
+      if (series.length === 1 || clipped || series.length > 1) txt(svg, neg ? x1 - 5 : x1 + 5, yy + bh / 2 + 4, (v > 0 ? "+" : "") + fmt(v) + "%" + (clipped ? " ▸" : ""), { "text-anchor": neg ? "end" : "start", class: "dl" });
+    });
+    const hit = el("rect", { x: 0, y: m.t + i * rowH, width: W, height: rowH, class: "hit" + (onClick ? " click" : "") }, svg);
+    if (onClick) hit.addEventListener("click", () => onClick(lab));
+    bindTip(hit, lab, series.filter(se => se.values[i] != null).map(se => ({ k: se.name, c: se.color || (se.values[i] < 0 ? "var(--neg)" : "var(--pos)"), v: (se.values[i] > 0 ? "+" : "") + fmt(se.values[i]) + "%" })));
+  });
+  el("line", { x1: x(0), x2: x(0), y1: m.t, y2: H - m.b, class: "zero" }, svg);
+}
+
+/* Range bars (lo..hi), negative */
+function rangebar(id, { labels, lo, hi, rowH=30, labelW=118 }) {
+  const box = document.getElementById(id); box.innerHTML = "";
+  const W = Math.max(300, box.clientWidth || 600), m = { t: 8, r: 20, b: 22, l: labelW };
+  const H = m.t + m.b + labels.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, box);
+  const min = -80, max = 0, iw = W - m.l - m.r, x = v => m.l + (v - min) / (max - min) * iw;
+  const g = el("g", { class: "axis" }, svg);
+  for (let t = min; t <= max; t += 20) { el("line", { x1: x(t), x2: x(t), y1: m.t, y2: H - m.b, class: "gridline" }, g); txt(g, x(t), H - 6, t + "%", { "text-anchor": "middle" }); }
+  labels.forEach((lab, i) => {
+    const yc = m.t + i * rowH + rowH / 2, sub = lab.startsWith("·");
+    txt(svg, m.l - 8, yc + 4, lab, { "text-anchor": "end", style: sub ? "fill:var(--ink-3)" : "font-weight:600" });
+    el("line", { x1: x(0), x2: x(hi[i]), y1: yc, y2: yc, stroke: "var(--grid)", "stroke-width": 2 }, svg);
+    el("rect", { x: x(lo[i]), y: yc - 7, width: x(hi[i]) - x(lo[i]), height: 14, rx: 4, fill: i === 0 ? "var(--t3)" : sub ? "var(--t1)" : "var(--t2)", class: "bm gxr", style: `animation-delay:${i * 50}ms` }, svg);
+    const right = lo[i] < -40;
+    txt(svg, right ? x(hi[i]) + 6 : x(lo[i]) - 6, yc + 4, `${lo[i]}% to ${hi[i]}%`, { "text-anchor": right ? "start" : "end", class: "dl" });
+    const hit = el("rect", { x: 0, y: yc - rowH / 2, width: W, height: rowH, class: "hit" }, svg);
+    bindTip(hit, lab.replace("· ", ""), [{ k: "Q3 2026 vs Q3 2025", v: `${lo[i]}% to ${hi[i]}%` }]);
+  });
+  el("line", { x1: x(0), x2: x(0), y1: m.t, y2: H - m.b, class: "zero" }, svg);
+}
+
+/* Line chart */
+function line(id, { labels, series, H=240, min=0, max=null, fmtV=v=>fmt(v,1), unit="", endLabels=true, area=false }) {
+  const box = document.getElementById(id); box.innerHTML = "";
+  const W = Math.max(300, box.clientWidth || 600), m = { t: 16, r: 54, b: 30, l: 40 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, box);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const mx = max ?? niceMax(Math.max(...series.flatMap(s => s.values.filter(v => v != null))) * 1.1);
+  const x = i => m.l + (labels.length === 1 ? iw / 2 : i / (labels.length - 1) * iw), y = v => m.t + ih - (v - min) / (mx - min) * ih;
+  const g = el("g", { class: "axis" }, svg);
+  const step = niceMax((mx - min) / 4);
+  for (let t = min; t <= mx + 1e-9; t += step) { el("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), class: "gridline" }, g); txt(g, m.l - 6, y(t) + 4, fmtV(t).replace(/\.0+$/, "") + unit, { "text-anchor": "end" }); }
+  labels.forEach((l, i) => txt(g, x(i), H - 10, l, { "text-anchor": "middle" }));
+  series.forEach(se => {
+    const pts = se.values.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
+    if (area) el("path", { d: `M${pts[0][0]},${y(min)} ` + pts.map(p => `L${p[0]},${p[1]}`).join(" ") + ` L${pts[pts.length-1][0]},${y(min)} Z`, fill: se.color, opacity: .12 }, svg);
+    el("path", { d: pts.map((p, i) => (i ? "L" : "M") + p[0] + "," + p[1]).join(" "), pathLength: 1, class: se.dash ? "" : "ln", fill: "none", stroke: se.color, "stroke-width": 2.25, "stroke-linejoin": "round", "stroke-linecap": "round", ...(se.dash ? { "stroke-dasharray": "5 4" } : {}) }, svg);
+    se.values.forEach((v, i) => { if (v == null) return; el("circle", { cx: x(i), cy: y(v), r: 4, fill: se.color, stroke: "var(--surface)", "stroke-width": 2 }, svg); });
+    if (endLabels) { const li = se.values.length - 1; txt(svg, x(li) + 8, y(se.values[li]) + 4, fmtV(se.values[li]) + unit, { class: "dl" }); }
+    if (se.labelAll) se.values.forEach((v, i) => { if (v == null || i === se.values.length - 1) return; txt(svg, x(i), y(v) - 10, fmtV(v) + unit, { "text-anchor": "middle", class: "dl" }); });
+  });
+  const cross = el("line", { y1: m.t, y2: m.t + ih, stroke: "var(--ink-3)", "stroke-dasharray": "3 3", opacity: 0 }, svg);
+  labels.forEach((l, i) => {
+    const hw = labels.length === 1 ? iw : iw / (labels.length - 1);
+    const hit = el("rect", { x: x(i) - hw / 2, y: m.t, width: hw, height: ih, class: "hit" }, svg);
+    hit.addEventListener("mousemove", e => { cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", .6); showTip(e, l, series.filter(se => se.values[i] != null).map(se => ({ k: se.name, c: se.color, v: fmtV(se.values[i]) + unit }))); });
+    hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+  });
+}
+
+/* Data table */
+function table(id, head, rows) {
+  document.getElementById(id).innerHTML = `<table class="data"><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr class="${r.cls||""}">${r.cells.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+const n0 = v => v == null ? "–" : fmt(v, 0);
+const pc = (a, b) => b ? ((a / b - 1) * 100 > 0 ? "+" : "") + fmt((a / b - 1) * 100) + "%" : "–";
+
+/* =========================== RENDER =========================== */
+const GREY = "var(--prior)";
+function render() {
+  // overview
+  draw("c_rev", vbar, { labels: D.years, series: [{ name: "Revenue", color: S(1), values: D.revenue.map(v => v / 1000) }], labelTop: true, fmtV: v => fmt(v, 1), unit: " bn" , hiLast: true});
+  draw("c_np", vbar, { labels: D.years, series: [{ name: "Adj. net profit", color: S(1), values: D.adjNP.map(v => v / 1000) }], labelTop: true, fmtV: v => fmt(v, 2), unit: " bn" , hiLast: true});
+  const npm = D.adjNP.map((v, i) => v / D.revenue[i] * 100);
+  legend("l_margin", [["Gross margin", S(1)], ["Adj. net margin", "var(--ink)"]]);
+  draw("c_margin", line, { labels: [...D.years, "H1 26"], series: [
+    { name: "Gross margin", color: S(1), values: [...D.gm, D.h1.gm[1]] },
+    { name: "Adj. net margin", color: "var(--ink)", values: [...npm, D.h1.npm[1]] }], min: 0, max: 80, unit: "%", fmtV: v => fmt(v, 1) });
+  draw("c_half", vbar, { labels: D.half.labels, series: [{ name: "Revenue", color: S(1), values: D.half.values.map(v => v / 1000) }], labelTop: true, fmtV: v => fmt(v, 2), unit: " bn", H: 210 });
+
+  // IP
+  const order = D.ipNames.map((n, i) => i).filter(i => !["Other artist IPs","Licensed IPs","External & others"].includes(D.ipNames[i])).sort((a, b) => D.ip2025[b] - D.ip2025[a]);
+  const ipIdx = [...order, D.ipNames.indexOf("Licensed IPs"), D.ipNames.indexOf("Other artist IPs")];
+  legend("l_ipyear", [["2024", GREY], ["2025", S(1)]]);
+  draw("c_ipyear", hbar, { onClick: selectIP, sel: SEL_IP, labels: ipIdx.map(i => D.ipNames[i]), series: [
+    { name: "2024", color: GREY, values: ipIdx.map(i => D.ip2024[i] / 1000) },
+    { name: "2025", color: S(1), values: ipIdx.map(i => D.ip2025[i] / 1000) }], fmtV: v => fmt(v, 2), unit: " bn" });
+  const yoy = D.ipH1.names.map((n, i) => (D.ipH1.h126[i] / D.ipH1.h125[i] - 1) * 100);
+  const yIdx = yoy.map((v, i) => i).filter(i => D.ipH1.names[i] !== "External & others").sort((a, b) => yoy[b] - yoy[a]);
+  draw("c_ipyoy", divbar, { onClick: selectIP, sel: SEL_IP, labels: yIdx.map(i => D.ipH1.names[i]), series: [{ name: "H1 2026 vs H1 2025", values: yIdx.map(i => yoy[i]) }], clip: [-60, 100] });
+  draw("c_conc", line, { labels: D.monstersShare.labels, series: [{ name: "THE MONSTERS share", color: S(1), values: D.monstersShare.values, labelAll: true }], min: 0, max: 50, unit: "%", area: true });
+  const top = ["THE MONSTERS","Twinkle Twinkle","CRYBABY","DIMOO","SKULLPANDA","MOLLY"];
+  const cols = [S(1), S(5), S(4), S(3), S(2), S(6)];
+  const mix = lab => { const arr = lab === "h125" ? D.ipH1.h125 : D.ipH1.h126; const tot = arr.reduce((a, b) => a + b, 0);
+    const vals = top.map(n => arr[D.ipH1.names.indexOf(n)]); return [...vals, tot - vals.reduce((a, b) => a + b, 0)]; };
+  const m1 = mix("h125"), m2 = mix("h126");
+  const mixSeries = [...top, "All other IPs"].map((n, k) => ({ name: n, color: k < 6 ? cols[k] : GREY, values: [m1[k], m2[k]] }));
+  legend("l_ipmix", mixSeries.map(s => [s.name, s.color]));
+  draw("c_ipmix", vbar, { labels: ["H1 2025", "H1 2026"], series: mixSeries, stacked: true, pct: true, H: 280 });
+
+  // product
+  const catC = [S(1), S(2), S(3), S(4)];
+  legend("l_cat", D.cat.names.map((n, k) => [n, catC[k]]));
+  draw("c_cat", vbar, { labels: ["2023", "2024", "2025"], series: D.cat.names.map((n, k) => ({ name: n, color: catC[k], values: [D.cat.y2023[k], D.cat.y2024[k], D.cat.y2025[k]].map(v => v / 1000) })), fmtV: v => fmt(v, 2), unit: " bn", labelTop: true, H: 270 });
+  legend("l_catmix", D.cat.names.map((n, k) => [n, catC[k]]));
+  draw("c_catmix", vbar, { labels: ["2023", "2024", "2025"], series: D.cat.names.map((n, k) => ({ name: n, color: catC[k], values: [D.cat.y2023[k], D.cat.y2024[k], D.cat.y2025[k]] })), stacked: true, pct: true, H: 270 });
+  legend("l_cath1", [["H1 2025", GREY], ["H1 2026", S(1)]]);
+  draw("c_cath1", hbar, { labels: D.catH1.names, series: [
+    { name: "H1 2025", color: GREY, values: D.catH1.h125.map(v => v / 1000) },
+    { name: "H1 2026", color: S(1), values: D.catH1.h126.map(v => v / 1000) }], fmtV: v => fmt(v, 2), unit: " bn", rowH: 44, labelW: 112 });
+
+  // market
+  const regC = [S(1), S(2), S(3), S(4)];
+  legend("l_reg", D.reg.names.map((n, k) => [n, regC[k]]));
+  draw("c_reg", vbar, { labels: D.reg.labels, series: D.reg.names.map((n, k) => ({ name: n, color: regC[k], values: D.reg.data.map(r => r[k] / 1000) })), stacked: true, labelTop: true, fmtV: v => fmt(v, 2), unit: " bn", H: 280 });
+  legend("l_regyoy", [["2025", "var(--t1)"], ["H1 2026", "var(--t2)"], ["Q3 2026 (midpoint)", "var(--t3)"]]);
+  draw("c_regyoy", divbar, { labels: D.regYoY.names, series: [
+    { name: "2025", color: "var(--t1)", values: D.regYoY.y2025 },
+    { name: "H1 2026", color: "var(--t2)", values: D.regYoY.h126 },
+    { name: "Q3 2026 (midpoint)", color: "var(--t3)", values: D.regYoY.q3 }], clip: [-80, 160], rowH: 56 });
+  const chC = [S(1), S(3), S(2), S(4), S(5), S(6), GREY];
+  legend("l_ch", D.ch.names.map((n, k) => [n, chC[k]]));
+  draw("c_ch", vbar, { labels: D.ch.labels, series: D.ch.names.map((n, k) => ({ name: n, color: chC[k], values: D.ch.data.map(r => r[k]) })), stacked: true, pct: true, H: 280 });
+  rangebar("c_q3", D.q3);
+
+  // ops
+  const stC = [S(1), S(2), S(3), S(4)];
+  legend("l_st", D.stores.names.map((n, k) => [n, stC[k]]));
+  draw("c_st", vbar, { labels: D.stores.labels, series: D.stores.names.map((n, k) => ({ name: n, color: stC[k], values: D.stores.data.map(r => r[k]) })), stacked: true, labelTop: true, fmtV: v => fmt(v, 0), H: 260 });
+  draw("c_mem", vbar, { labels: D.members.labels, series: [{ name: "Registered members", color: S(1), values: D.members.values }], labelTop: true, fmtV: v => fmt(v, 1), unit: " m", H: 260 , hiLast: true});
+  draw("c_robo", vbar, { labels: D.robo.labels, series: [{ name: "Roboshops", color: S(1), values: D.robo.values }], labelTop: true, fmtV: v => fmt(v, 0), H: 220 , hiLast: true});
+  draw("c_rps", vbar, { labels: D.rps.labels, series: [{ name: "Revenue per store", color: S(1), values: D.rps.values }], labelTop: true, fmtV: v => fmt(v, 1), unit: " m", H: 220 });
+  renderIP();
+}
+
+function tables() {
+  table("t_fin", ["", "2021", "2022", "2023", "2024", "2025"], [
+    { cells: ["Revenue", ...D.revenue.map(n0)] },
+    { cells: ["YoY", "–", ...D.revenue.slice(1).map((v, i) => pc(v, D.revenue[i]))], cls: "sub" },
+    { cells: ["Gross margin", ...D.gm.map(v => fmt(v) + "%")] },
+    { cells: ["Adj. net profit", ...D.adjNP.map(n0)] },
+    { cells: ["Adj. net margin", ...D.adjNP.map((v, i) => fmt(v / D.revenue[i] * 100) + "%")], cls: "sub" },
+  ]);
+  table("t_reg", ["", ...D.reg.labels], D.reg.names.map((n, k) => ({ cells: [n, ...D.reg.data.map(r => n0(r[k]))] })).concat([{ cells: ["Total", ...D.reg.data.map(r => n0(r.reduce((a, b) => a + b, 0)))], cls: "sub" }]));
+  const h1map = n => D.ipH1.names.indexOf(n);
+  const allIP = ["THE MONSTERS","SKULLPANDA","CRYBABY","MOLLY","DIMOO","Twinkle Twinkle","HIRONO","HACIPUPU","Zsiga","Other artist IPs","Licensed IPs","External & others"];
+  table("t_ip", ["IP", "2024", "2025", "2025 YoY", "H1 2025", "H1 2026", "H1 YoY"], allIP.map(n => {
+    const a = D.ipNames.indexOf(n), b = h1map(n);
+    const y24 = a >= 0 ? D.ip2024[a] : null, y25 = a >= 0 ? D.ip2025[a] : null, h5 = b >= 0 ? D.ipH1.h125[b] : null, h6 = b >= 0 ? D.ipH1.h126[b] : null;
+    return { cells: [n, n0(y24), n0(y25), y24 ? pc(y25, y24) : "–", n0(h5), n0(h6), h5 ? pc(h6, h5) : "–"] };
+  }));
+  table("t_cat", ["", "2023", "2024", "2025", "H1 2025", "H1 2026"], [
+    { cells: ["Plush", n0(D.cat.y2023[0]), n0(D.cat.y2024[0]), n0(D.cat.y2025[0]), n0(D.catH1.h125[0]), n0(D.catH1.h126[0])] },
+    { cells: ["Figures", n0(D.cat.y2023[1]), n0(D.cat.y2024[1]), n0(D.cat.y2025[1]), n0(D.catH1.h125[1]), n0(D.catH1.h126[1])] },
+    { cells: ["MEGA", n0(D.cat.y2023[2]), n0(D.cat.y2024[2]), n0(D.cat.y2025[2]), "–", "–"] },
+    { cells: ["Other IP products", n0(D.cat.y2023[3]), n0(D.cat.y2024[3]), n0(D.cat.y2025[3]), "–", "–"] },
+    { cells: ["Other incl. MEGA (H1)", "–", "–", "–", n0(D.catH1.h125[2]), n0(D.catH1.h126[2])], cls: "sub" },
+  ]);
+  table("t_ch", ["", ...D.ch.labels], D.ch.names.map((n, k) => ({ cells: [n, ...D.ch.data.map(r => n0(r[k]))] })));
+}
+
+/* =========================== IP EXPLORER =========================== */
+const TOT = { y2024: 13037.7, y2025: 37120.1, h125: 13876.3, h126: 17172.9 };
+const IP_LIST = ["THE MONSTERS","Twinkle Twinkle","SKULLPANDA","CRYBABY","DIMOO","MOLLY","HIRONO","HACIPUPU","Zsiga","Licensed IPs"];
+const ARTIST = ["THE MONSTERS","SKULLPANDA","CRYBABY","MOLLY","DIMOO","Twinkle Twinkle","HIRONO","Zsiga"];
+let SEL_IP = "THE MONSTERS";
+function ipData(n) {
+  const a = D.ipNames.indexOf(n), b = D.ipH1.names.indexOf(n);
+  return { y24: a >= 0 ? D.ip2024[a] : null, y25: a >= 0 ? D.ip2025[a] : null, h25: b >= 0 ? D.ipH1.h125[b] : null, h26: b >= 0 ? D.ipH1.h126[b] : null };
+}
+function selectIP(n) {
+  if (!IP_LIST.includes(n)) return;
+  SEL_IP = n; renderIP();
+  ["c_ipyear", "c_ipyoy"].forEach(id => { if (REG[id]) { REG[id].opts.sel = n; redraw(id); } });
+}
+function renderIP() {
+  const chips = document.getElementById("ipChips"); if (!chips) return;
+  chips.innerHTML = IP_LIST.map(n => `<button type="button" class="${n === SEL_IP ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
+  chips.querySelectorAll("button").forEach(b => b.addEventListener("click", () => selectIP(b.dataset.n)));
+  const d = ipData(SEL_IP);
+  const g = (a, b) => (a != null && b) ? (a / b - 1) * 100 : null;
+  const gs = v => v == null ? "–" : `<span class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "▲" : "▼"} ${fmt(Math.abs(v))}%</span>`;
+  const amt = v => v == null ? "–" : fmt(v / 1000, 2);
+  const g25 = g(d.y25, d.y24), g26 = g(d.h26, d.h25);
+  const sh25 = d.y25 != null ? d.y25 / TOT.y2025 * 100 : null, sh26 = d.h26 != null ? d.h26 / TOT.h126 * 100 : null, sh25h = d.h25 != null ? d.h25 / TOT.h125 * 100 : null;
+  const rank = ARTIST.includes(SEL_IP) && d.h26 != null ? 1 + ARTIST.filter(n => (ipData(n).h26 ?? -1) > d.h26).length : null;
+  let text = "";
+  if (g26 != null) text += `${SEL_IP} ${g26 >= 0 ? "grew" : "fell"} ${fmt(Math.abs(g26))}% in H1 2026 to RMB ${amt(d.h26)} bn, ${fmt(sh26)}% of group revenue (${fmt(sh25h)}% in H1 2025). `;
+  if (g25 != null) text += `Full-year 2025 revenue was RMB ${amt(d.y25)} bn, ${g25 >= 0 ? "up" : "down"} ${fmt(Math.abs(g25))}% on 2024.`;
+  else if (d.y25 == null) text += "Not reported as a separate line in the full-year IP table.";
+  if (d.h26 == null) text += " Not reported as a separate line in the H1 2026 IP table.";
+  document.getElementById("ipProf").innerHTML = `
+    <div>
+      <div class="ip-name">${SEL_IP}</div>
+      ${rank ? `<div class="ip-rank">#${rank} artist IP in H1 2026</div>` : `<div class="ip-rank">${SEL_IP === "Licensed IPs" ? "All licensed IPs combined" : "IP profile"}</div>`}
+      <div class="ip-stats">
+        <div class="stat"><div class="l">2025 revenue (RMB bn)</div><div class="v">${amt(d.y25)}</div><div class="l">${gs(g25)} vs 2024</div></div>
+        <div class="stat"><div class="l">Share of 2025 revenue</div><div class="v">${sh25 == null ? "–" : fmt(sh25) + "%"}</div><div class="l">of RMB 37.12 bn</div></div>
+        <div class="stat"><div class="l">H1 2026 revenue (RMB bn)</div><div class="v">${amt(d.h26)}</div><div class="l">${gs(g26)} vs H1 2025</div></div>
+        <div class="stat"><div class="l">Share of H1 2026 revenue</div><div class="v">${sh26 == null ? "–" : fmt(sh26) + "%"}</div><div class="l">${sh25h == null ? "" : "from " + fmt(sh25h) + "% in H1 2025"}</div></div>
+      </div>
+      <p class="ip-text">${text}</p>
+    </div>
+    <div><div class="sub" style="margin-top:4px">Revenue, RMB bn (H1 = six months)</div><div class="chart" id="c_ipprof"></div></div>`;
+  const labs = [], vals = [];
+  [["2024", d.y24], ["2025", d.y25], ["H1 2025", d.h25], ["H1 2026", d.h26]].forEach(([l, v]) => { if (v != null) { labs.push(l); vals.push(v / 1000); } });
+  vbar("c_ipprof", { labels: labs, series: [{ name: SEL_IP, color: S(1), values: vals }], labelTop: true, fmtV: v => fmt(v, 2), unit: " bn", H: 230, hiLast: true });
+}
+
+/* =========================== CLICK-THROUGH =========================== */
+function goTab(t) { document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); }
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-goto],[data-ip]"); if (!t) return;
+  if (t.dataset.goto) goTab(t.dataset.goto);
+  if (t.dataset.ip) { selectIP(t.dataset.ip); setTimeout(() => document.getElementById("ipExplorer")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }
+});
+document.querySelectorAll(".seg").forEach(seg => seg.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+  seg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  MODE[seg.dataset.chart] = b.dataset.mode; redraw(seg.dataset.chart);
+  const sub = seg.closest(".card").querySelector(".sub"); if (sub) { sub.dataset.orig ??= sub.textContent; sub.textContent = b.dataset.mode === "pct" ? "% of total" : sub.dataset.orig; }
+})));
+
+/* =========================== UI =========================== */
+document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("nav.tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("active", s.id === b.dataset.tab));
+  try { localStorage.setItem("pm-tab-en", b.dataset.tab); } catch (e) {}
+  render();
+  window.scrollTo({ top: 0 });
+}));
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+});
+let lastW = 0;
+function rerender() { render(); }
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (innerWidth !== lastW) { lastW = innerWidth; rerender(); } }, 150); });
+render(); tables(); lastW = innerWidth;
+try { const t = localStorage.getItem("pm-tab-en"); if (t) document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); } catch (e) {}
+</script>
+</body>
+</html>
